@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Disnovation</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map {
+      height: 500px;
+      width: 100%;
+    }
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+    .info {
+      padding: 6px 8px;
+      font: 14px/16px Arial, Helvetica, sans-serif;
+      background: white;
+      background: rgba(255,255,255,0.8);
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      border-radius: 5px;
+    }
+    .info h4 {
+      margin: 0 0 5px;
+      color: #777;
+    }
+    .legend {
+      line-height: 18px;
+      color: #555;
+    }
+    .legend i {
+      width: 18px;
+      height: 18px;
+      float: left;
+      margin-right: 8px;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+
+  <button onclick="goToEiffel()">Go to Eiffel Tower</button>
+  <button onclick="showTopoWMS()">Topography WMS</button>
+  <button onclick="showHillshadeWMS()">Hillshade WMS</button>
+  <button onclick="showChoropleth()">Show US Choropleth</button>
+
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://leafletjs.com/examples/choropleth/us-states.js"></script>
+  <script>
+    // Base layers
+    var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 17,
+      attribution: '&copy; OpenStreetMap contributors'
+    });
+
+    var osmHOT = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+      maxZoom: 17,
+      attribution: '&copy; OpenStreetMap contributors, Tiles style by Humanitarian OpenStreetMap Team hosted by OpenStreetMap France'
+    });
+
+    var openTopoMap = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+      maxZoom: 17,
+      attribution: 'Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA)'
+    });
+
+    // WMS Layers
+    var topoWMS = L.tileLayer.wms('https://ows.mundialis.de/services/service?', {
+      layers: 'TOPO-WMS',
+      format: 'image/png',
+      transparent: true,
+      attribution: 'Mundialis WMS'
+    });
+
+    var hillshadeWMS = L.tileLayer.wms('https://ows.mundialis.de/services/service?', {
+      layers: 'SRTM30-Colored-Hillshade',
+      format: 'image/png',
+      transparent: true,
+      attribution: 'Mundialis WMS'
+    });
+
+    // Map init
+    var map = L.map('map', {
+      center: [48.8325616, 2.3602348],
+      zoom: 15,
+      layers: [osm]
+    });
+
+    // Marker
+    L.marker([48.8325616, 2.3602348])
+      .addTo(map)
+      .bindPopup('<b>Disnovation</b><br>144 Bd Vincent Auriol')
+      .openPopup();
+
+    // Base layer control
+    var baseMaps = {
+      "OpenStreetMap": osm,
+      "OpenStreetMap.HOT": osmHOT,
+      "OpenTopoMap": openTopoMap
+    };
+
+    L.control.layers(baseMaps, null).addTo(map);
+
+    // Eiffel Tower zoom + circle
+    function goToEiffel() {
+      map.flyTo([48.8584, 2.2945], 17, {
+        animate: true,
+        duration: 8
+      });
+
+      setTimeout(() => {
+        L.circle([48.8584, 2.2945], {
+          color: 'red',
+          fillColor: '#f03',
+          fillOpacity: 0.5,
+          radius: 50
+        }).addTo(map);
+      }, 3000);
+    }
+
+    // Show Topography WMS layer
+    function showTopoWMS() {
+      map.setView([20, 0], 2);
+      map.eachLayer(layer => {
+        if (layer instanceof L.TileLayer.WMS) map.removeLayer(layer);
+      });
+      topoWMS.addTo(map);
+    }
+
+    // Show Hillshade WMS layer
+    function showHillshadeWMS() {
+      map.setView([20, 0], 2);
+      map.eachLayer(layer => {
+        if (layer instanceof L.TileLayer.WMS) map.removeLayer(layer);
+      });
+      hillshadeWMS.addTo(map);
+    }
+
+    // CHOROPLETH STUFF BELOW
+
+    var geojson;
+
+    var info = L.control();
+
+    info.onAdd = function (map) {
+      this._div = L.DomUtil.create('div', 'info');
+      this.update();
+      return this._div;
+    };
+
+    info.update = function (props) {
+      this._div.innerHTML = '<h4>US Population Density</h4>' + (props
+        ? '<b>' + props.name + '</b><br />' + props.density + ' people / mi<sup>2</sup>'
+        : 'Hover over a state');
+    };
+
+    //info.addTo(map);
+
+    function getColor(d) {
+      return d > 1000 ? '#800026' :
+             d > 500  ? '#BD0026' :
+             d > 200  ? '#E31A1C' :
+             d > 100  ? '#FC4E2A' :
+             d > 50   ? '#FD8D3C' :
+             d > 20   ? '#FEB24C' :
+             d > 10   ? '#FED976' :
+                        '#FFEDA0';
+    }
+
+    function style(feature) {
+      return {
+        fillColor: getColor(feature.properties.density),
+        weight: 2,
+        opacity: 1,
+        color: 'white',
+        dashArray: '3',
+        fillOpacity: 0.7
+      };
+    }
+
+    function highlightFeature(e) {
+      var layer = e.target;
+
+      layer.setStyle({
+        weight: 5,
+        color: '#666',
+        dashArray: '',
+        fillOpacity: 0.7
+      });
+
+      layer.bringToFront();
+      info.update(layer.feature.properties);
+    }
+
+    function resetHighlight(e) {
+      geojson.resetStyle(e.target);
+      info.update();
+    }
+
+    function zoomToFeature(e) {
+      map.fitBounds(e.target.getBounds());
+    }
+
+    function onEachFeature(feature, layer) {
+      layer.on({
+        mouseover: highlightFeature,
+        mouseout: resetHighlight,
+        click: zoomToFeature
+      });
+    }
+
+    function showChoropleth() {
+        map.setView([37.8, -96], 4);
+  
+  // Remove WMS layers
+  map.eachLayer(layer => {
+    if (layer instanceof L.TileLayer.WMS) map.removeLayer(layer);
+  });
+
+  // Remove previous geojson if it exists
+  if (geojson) {
+    map.removeLayer(geojson);
+  }
+
+  // Add choropleth layer
+  geojson = L.geoJson(statesData, {
+    style: style,
+    onEachFeature: onEachFeature
+  }).addTo(map);
+
+  // Add info and legend controls to map (only now)
+  info.addTo(map);
+  legend.addTo(map);
+    }
+
+    var legend = L.control({ position: 'bottomright' });
+
+    legend.onAdd = function (map) {
+      var div = L.DomUtil.create('div', 'info legend'),
+          grades = [0, 10, 20, 50, 100, 200, 500, 1000],
+          labels = [];
+
+      for (var i = 0; i < grades.length; i++) {
+        div.innerHTML +=
+          '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
+          grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
+      }
+
+      return div;
+    };
+
+    //legend.addTo(map);
+  </script>
+
+</body>
+</html>
