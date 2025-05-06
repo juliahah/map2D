@@ -4,46 +4,37 @@
   <title>Disnovation</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+  
     #map {
-      height: 500px;
+      height: 100%;
       width: 100%;
     }
+  
     button {
-      margin: 10px;
+      position: absolute;
+      top: 10px;
+      left: 60px;
+      z-index: 1000;
+      margin: 5px;
       padding: 10px 20px;
       font-size: 16px;
     }
-    .info {
-      padding: 6px 8px;
-      font: 14px/16px Arial, Helvetica, sans-serif;
-      background: white;
-      background: rgba(255,255,255,0.8);
-      box-shadow: 0 0 15px rgba(0,0,0,0.2);
-      border-radius: 5px;
-    }
-    .info h4 {
-      margin: 0 0 5px;
-      color: #777;
-    }
-    .legend {
-      line-height: 18px;
-      color: #555;
-    }
-    .legend i {
-      width: 18px;
-      height: 18px;
-      float: left;
-      margin-right: 8px;
-      opacity: 0.7;
+  
+    .info, .legend {
+      z-index: 1000;
     }
   </style>
+  
 </head>
 <body>
-
-  <button onclick="goToEiffel()">Go to Eiffel Tower</button>
-  <button onclick="showTopoWMS()">Topography WMS</button>
-  <button onclick="showHillshadeWMS()">Hillshade WMS</button>
-  <button onclick="showChoropleth()">Show US Choropleth</button>
+  <div style="position:absolute; z-index:1000; top:10px; left:10px;">
+    <button onclick="goToEiffel()">Go to Eiffel Tower</button>
+  </div>
 
   <div id="map"></div>
 
@@ -118,6 +109,10 @@
           radius: 50
         }).addTo(map);
       }, 3000);
+
+      setTimeout(() => {
+      location.reload();
+    }, 35000);
     }
 
     // Show Topography WMS layer
@@ -252,6 +247,8 @@
     };
 
     //legend.addTo(map);
+
+   
   </script>
 
 </body>
